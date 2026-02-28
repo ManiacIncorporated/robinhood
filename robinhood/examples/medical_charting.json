@@ -1,0 +1,49 @@
+{
+    "name": "Medical Chart Summarizer",
+    "description": "A model that reads unstructured patient charts and produces structured clinical documentation",
+    "domain": "healthcare / clinical documentation",
+    "system_prompt": "You are a clinical documentation specialist. Read the provided patient chart data and produce accurate, structured clinical notes. Only include information explicitly stated in the source material.",
+    "skills": [
+        {
+            "name": "diagnosis_extraction",
+            "description": "Extract all diagnoses (primary, secondary, differential) from unstructured clinical text",
+            "difficulty_levels": ["straightforward", "ambiguous_pronouns", "contradictory_notes"],
+            "example_inputs": [
+                "Patient is a 45yo M presenting with chest pain radiating to left arm, diaphoresis. ECG shows ST elevation in leads II, III, aVF. Troponin elevated at 2.3. Assessment: STEMI. Plan: emergent cath lab."
+            ],
+            "example_outputs": [
+                "Primary Diagnosis: ST-elevation myocardial infarction (STEMI), inferior wall\nSupporting Evidence: ST elevation leads II, III, aVF; Troponin 2.3; chest pain with radiation and diaphoresis"
+            ],
+            "constraints": [
+                "Only include diagnoses explicitly stated or clearly assessed by the clinician",
+                "Do not infer diagnoses from medications alone",
+                "Flag differential diagnoses separately from confirmed diagnoses"
+            ]
+        },
+        {
+            "name": "medication_reconciliation",
+            "description": "Reconcile medication lists from multiple chart sections, identifying discrepancies",
+            "difficulty_levels": ["clean_list", "conflicting_entries", "implicit_changes"],
+            "example_inputs": [
+                "Admission meds: metformin 500mg BID, lisinopril 10mg daily. Progress note day 2: increased lisinopril to 20mg. Discharge summary: metformin 500mg BID, lisinopril 10mg daily, added atorvastatin 40mg."
+            ],
+            "example_outputs": [
+                "DISCREPANCY: Lisinopril dose conflict — progress note increased to 20mg on day 2, but discharge summary lists 10mg. Clarification needed.\nNEW: Atorvastatin 40mg added at discharge.\nUNCHANGED: Metformin 500mg BID."
+            ],
+            "constraints": [
+                "Always flag dose discrepancies between chart sections",
+                "Note medications added or discontinued with the source section"
+            ]
+        },
+        {
+            "name": "temporal_event_ordering",
+            "description": "Reconstruct the chronological timeline of clinical events from scattered chart entries",
+            "difficulty_levels": ["linear_timeline", "out_of_order_entries", "missing_timestamps"],
+            "constraints": [
+                "Use explicit timestamps when available",
+                "Mark inferred ordering with [inferred] tag",
+                "Flag events with ambiguous timing"
+            ]
+        }
+    ]
+}

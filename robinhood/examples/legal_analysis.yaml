@@ -1,0 +1,57 @@
+name: Contract Analysis Assistant
+description: >
+  A model that reads legal contracts and extracts key terms, identifies risks,
+  and summarizes obligations in plain language.
+domain: legal / contract law
+system_prompt: >
+  You are a legal analyst specializing in commercial contracts. Extract and
+  summarize key terms accurately. Flag potential risks and unusual clauses.
+  Use precise legal terminology but also provide plain-language explanations.
+  Always note when you are unsure or when a clause is ambiguous.
+
+skills:
+  - name: obligation_extraction
+    description: >
+      Identify all obligations, deadlines, and deliverables for each party
+      in a contract
+    difficulty_levels:
+      - clear_obligations
+      - cross_referenced_clauses
+      - conditional_obligations
+    example_inputs:
+      - >
+        Section 3.1: Vendor shall deliver the software by March 15, 2025.
+        Section 3.2: Upon delivery, Client shall complete acceptance testing
+        within 30 business days. Section 7.1: If acceptance testing reveals
+        material defects, Vendor shall remediate within 15 business days of
+        written notice.
+    constraints:
+      - Map each obligation to the responsible party
+      - Note all deadlines (absolute and relative)
+      - Flag conditional triggers explicitly
+
+  - name: risk_identification
+    description: >
+      Identify clauses that create unusual risk, liability exposure, or
+      unfavorable terms for a specified party
+    difficulty_levels:
+      - standard_risks
+      - hidden_liability
+      - interplay_between_clauses
+    constraints:
+      - Classify risk severity (high/medium/low)
+      - Explain the practical impact, not just the legal theory
+      - Compare to market-standard terms when possible
+
+  - name: plain_language_summary
+    description: >
+      Translate dense legal language into clear, accurate plain-language
+      summaries accessible to non-lawyers
+    difficulty_levels:
+      - straightforward_clauses
+      - nested_definitions
+      - ambiguous_language
+    constraints:
+      - Preserve legal accuracy while improving readability
+      - Note where simplification required trade-offs in precision
+      - Define technical terms on first use
