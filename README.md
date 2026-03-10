@@ -38,35 +38,45 @@ Supports **Anthropic**, **OpenAI**, and **OpenRouter** APIs when permitted by th
 ### Install
 
 ```bash
-pip install anthropic   # or openai, depending on your provider
+pip install -e .                          # from source
+pip install robinhood-distill             # from PyPI (when published)
+pip install -e ".[train]"                 # include training deps (unsloth, trl)
+pip install -e ".[all]"                   # everything
 ```
 
-### One command: full Chinese-distillation-style pipeline
+After install the `robinhood` command is available globally:
+
+```bash
+robinhood --version
+robinhood collect --help
+robinhood train   --help
+robinhood reformat --help
+```
+
+### Collect traces + train a model (full pipeline)
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
 
-python -m robinhood \
+robinhood collect \
     --model claude-sonnet-4-20250514 \
     --samples-per-category 100 \
     --thinking-budget 16000 \
     --samples-per-prompt 8 \
     --curriculum \
     --train \
-    --base-model unsloth/Qwen3-14B
+    --base-model unsloth/Qwen3-14B \
+    --compliance
 ```
 
 This collects 8 traces per prompt, verifies each one (automated for math/code, LLM-as-judge for everything else), picks the best, scores difficulty from pass rates, exports curriculum-ordered SFT data + DPO pairs from rejected traces, then trains in two stages: curriculum SFT followed by REDI contrastive refinement.
 
-### One command: simple mode (no rejection sampling)
+### Simple mode (no rejection sampling)
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-python -m robinhood \
+robinhood collect \
     --model claude-sonnet-4-20250514 \
     --samples-per-category 100 \
-    --thinking-budget 16000 \
     --train \
     --base-model unsloth/Qwen3-14B
 ```
@@ -191,14 +201,14 @@ robinhood works with any major LLM provider. The provider is auto-detected from 
 
 ```bash
 # Anthropic (native extended thinking)
-python -m robinhood --model claude-sonnet-4-20250514
+robinhood collect --model claude-sonnet-4-20250514
 
 # OpenAI
-python -m robinhood --provider openai --model gpt-4o --api-key sk-...
+robinhood collect --provider openai --model gpt-4o --api-key sk-...
 
 # OpenRouter (access hundreds of models)
-python -m robinhood --model deepseek/deepseek-r1
-python -m robinhood --model anthropic/claude-sonnet-4
+robinhood collect --model deepseek/deepseek-r1
+robinhood collect --model anthropic/claude-sonnet-4
 ```
 
 | Provider | Env Var | Extended Thinking |
@@ -229,7 +239,7 @@ Instead of generic prompts, define **exactly what you want the model to be good 
 ```
 
 ```bash
-python -m robinhood \
+robinhood collect \
     --skill-file my_skills.json \
     --prompts-per-skill 50 \
     --model claude-sonnet-4-20250514
@@ -251,10 +261,10 @@ Each skill gets prompts generated at every difficulty level, covering the full c
 
 ```bash
 # Collect with full reasoning
-python -m robinhood --format thinking_and_output
+robinhood collect --format thinking_and_output
 
 # Re-format existing traces to output-only (no re-collection needed)
-python -m robinhood --reformat traces.json --format output_only
+robinhood reformat traces.json --format output_only
 ```
 
 ## Training
@@ -264,8 +274,7 @@ python -m robinhood --reformat traces.json --format output_only
 When the full pipeline generates both SFT data and DPO pairs, training runs in two stages:
 
 ```bash
-# Stage 1 + Stage 2 automatically from the pipeline
-python -m robinhood \
+robinhood collect \
     --model claude-sonnet-4-20250514 \
     --samples-per-category 200 \
     --samples-per-prompt 8 \
@@ -280,7 +289,7 @@ python -m robinhood \
 
 ```bash
 # Stage 1: Curriculum SFT
-python -m robinhood train \
+robinhood train \
     --base-model unsloth/Qwen3-14B \
     --dataset ./robinhood_output/dataset/train.json \
     --curriculum \
@@ -289,7 +298,7 @@ python -m robinhood train \
     --lr 3e-4
 
 # Stage 1 + Stage 2: Curriculum SFT → REDI contrastive
-python -m robinhood train \
+robinhood train \
     --base-model unsloth/Qwen3-14B \
     --dataset ./robinhood_output/dataset/train.json \
     --dpo-dataset ./robinhood_output/dataset/dpo_pairs.jsonl \
@@ -341,17 +350,13 @@ adapter_path = trainer.train()
 ## Full CLI Reference
 
 ```bash
-# Full closed-loop pipeline (Chinese distillation style)
-python -m robinhood \
+# Full pipeline with rejection sampling + verification + training
+robinhood collect \
     --provider anthropic \
-    --api-key sk-ant-... \
     --model claude-sonnet-4-20250514 \
     --samples-per-category 100 \
     --thinking-budget 16000 \
     --samples-per-prompt 8 \
-    --min-judge-score 6.0 \
-    --difficulty-min 0.05 \
-    --difficulty-max 0.95 \
     --curriculum \
     --format thinking_and_output \
     --skill-file skills.json \
@@ -362,17 +367,18 @@ python -m robinhood \
     --base-model unsloth/Qwen3-14B \
     --lora-rank 32 \
     --dpo-beta 0.1 \
-    --dpo-epochs 1
+    --dpo-epochs 1 \
+    --compliance
 
-# Simple pipeline (no rejection sampling)
-python -m robinhood \
+# Simple pipeline (single trace per prompt, no verification)
+robinhood collect \
     --model claude-sonnet-4-20250514 \
     --samples-per-category 100 \
     --train \
     --base-model unsloth/Qwen3-14B
 
 # Standalone two-stage trainer
-python -m robinhood train \
+robinhood train \
     --base-model unsloth/Qwen3-14B \
     --dataset ./train.json \
     --val-dataset ./val.json \
@@ -385,8 +391,8 @@ python -m robinhood train \
     --dpo-beta 0.1 \
     --report-to wandb
 
-# Reformat existing traces
-python -m robinhood --reformat traces.json --format output_only --output-dir ./new
+# Reformat existing traces without re-collecting
+robinhood reformat traces.json --format output_only --output-dir ./new
 ```
 
 ## API Reference
